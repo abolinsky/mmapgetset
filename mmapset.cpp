@@ -16,33 +16,28 @@ size_t getFilesize(const char* filename) {
     return st.st_size;   
 }
 
-void constructMap(const char* mmappedData, size_t filesize, bool isEmpty, 
-    std::unordered_map<unsigned int, char*>& mapKeyPointer) {
-
-    bool firstLine = true;
+void constructMap(const char* mmappedData, size_t filesize, 
+    std::unordered_map<unsigned int, char* const>& mapKeyPointer) {
 
     // from mmap, create a pair of values from each line, 
     // and place every pairing into the hash map
-    char* const endOfFile = mmappedData + filesize;
-    while(!isEmpty && mmappedData && mmappedData != endOfFile) {
+    const char* const endOfFile = mmappedData + filesize;
+    while(mmappedData && mmappedData != endOfFile) {
 
         // grab key
-        unsigned int key = 0;
-        if (firstLine) {
-            key = atoi(mmappedData + 2);
-            firstLine = false;
-        } else key = atoi(mmappedData);
+        unsigned int key = atoi(mmappedData);
 
         // iterate pointer until a whitespace
-        while((mmappedData != static_cast<char*>(memchr(mmappedData, ' ', endOfFile - mmappedData))))
+        while((mmappedData != static_cast<char*>(
+            memchr(mmappedData, ' ', endOfFile - mmappedData))))
             mmappedData++;
 
-        // move one past the whitespace and store pointer to y
+        // move one past the whitespace to value
         mmappedData++;
-        char* yPointer = mmappedData;
 
         // make pairs and insert into hash map
-        std::pair<unsigned int, char*> keyPointerPair = std::make_pair(key, yPointer);
+        std::pair<unsigned int, char* const> keyPointerPair = std::make_pair(
+            key, const_cast<char* const>(mmappedData));
         mapKeyPointer.insert(keyPointerPair);
 
         // jump to next key
@@ -65,30 +60,26 @@ int main(int argc, char** argv) {
         exit(EXIT_FAILURE);
     }   
 
-    // get size of the file
+    // get size of the file and set empty flag if empty
     size_t filesize = getFilesize(argv[1]);
     bool isEmpty = false;
-
-    // if file is empty, make sure to mmap at least something
-    if (filesize == 0) {
-        isEmpty = true;
-        ftruncate(fd, 2);
-        filesize = getFilesize(argv[1]);
-    }
+    if (filesize == 0) isEmpty = true;
 
     // execute mmap:
-    char* mmappedData = static_cast<char*>(mmap(NULL, filesize, PROT_WRITE|PROT_READ, MAP_SHARED, fd, 0));
+    char* mmappedData = static_cast<char*>(
+        mmap(NULL, filesize, PROT_WRITE|PROT_READ, MAP_SHARED, fd, 0));
+
     if (mmappedData == NULL) {
         std::cerr << "error: could not memory map file" << std::endl;
         exit(EXIT_FAILURE);
     }
 
     // store an unchanging pointer to the start so we can reference it from munmap
-    const char* const mmappedDataStart = mmappedData;
+    char* const mmappedDataStart = mmappedData;
 
     // create and construct local unordered hash map
-    std::unordered_map<unsigned int, char*> mapKeyPointer;
-    constructMap(mmappedData, filesize, isEmpty, mapKeyPointer);
+    std::unordered_map<unsigned int, char* const> mapKeyPointer;
+    constructMap(mmappedData, filesize, mapKeyPointer);
 
     // prompt user for valid input and store result in file
     while(true) {
@@ -106,10 +97,12 @@ int main(int argc, char** argv) {
         if (input == "exit") {
 
             // unmap
-            int rc = munmap(mmappedDataStart, filesize);
-            if (rc != 0) {
-                std::cerr << "error: could not unmap memory" << std::endl;
-                exit(EXIT_FAILURE);
+            if (!isEmpty) {
+                int rc = munmap(mmappedDataStart, filesize);
+                if (rc != 0) {
+                    std::cerr << "error: could not unmap memory" << std::endl;
+                    exit(EXIT_FAILURE);
+                }
             }
 
             // close file
@@ -120,7 +113,8 @@ int main(int argc, char** argv) {
 
         // check to make sure input is in valid format
         if (input.at(0) == ' ') {
-            std::cout << "error: do not include spaces before the first number" << std::endl;
+            std::cout << "error: do not include spaces before the first number";
+            std::cout << std::endl;
             continue;
         }
 
@@ -172,17 +166,20 @@ int main(int argc, char** argv) {
             flock(fd, LOCK_UN);
 
             // unmap
-            int rc = munmap(mmappedDataStart, filesize);
-            if (rc != 0) {
-                std::cerr << "error: could not unmap memory" << std::endl;
-                exit(EXIT_FAILURE);
+            if (!isEmpty) {
+                int rc = munmap(mmappedDataStart, filesize);
+                if (rc != 0) {
+                    std::cerr << "error: could not unmap memory" << std::endl;
+                    exit(EXIT_FAILURE);
+                }
             }
 
             // update size of file
             filesize += written;
 
             // mmap again
-            mmappedData = static_cast<char*>(mmap(NULL, filesize, PROT_WRITE|PROT_READ, MAP_SHARED, fd, 0));
+            mmappedData = static_cast<char*>(
+                mmap(NULL, filesize, PROT_WRITE|PROT_READ, MAP_SHARED, fd, 0));
             if (mmappedData == NULL) {
                 std::cerr << "error: could not memory map file" << std::endl;
                 exit(EXIT_FAILURE);
@@ -193,7 +190,7 @@ int main(int argc, char** argv) {
 
             // erase and reconstruct hashmap
             mapKeyPointer.clear();
-            constructMap(mmappedData, filesize, isEmpty, mapKeyPointer);
+            constructMap(mmappedData, filesize, mapKeyPointer);
         }
 
         // if the key exists in the hashmap
@@ -206,7 +203,7 @@ int main(int argc, char** argv) {
             }
 
             // overwrite each character in memory
-            char* valueAddress = mapKeyPointer[x];
+            char* const valueAddress = mapKeyPointer[x];
             const char* const valueChar = value.c_str();
             for (int i = 0; i < 10; ++i) 
                 valueAddress[i] = valueChar[i];
