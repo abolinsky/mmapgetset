@@ -22,17 +22,9 @@ std::string getX(const char* mmappedData, size_t filesize, unsigned int x) {
     const char* input = s.c_str();
     int inputLength = std::strlen(input);
 
-    bool firstLine = true;
-
     // search every line in mmapped file for key
     const char* const endOfFile = mmappedData + filesize;
     while(mmappedData && mmappedData != endOfFile) {
-
-        // set pointer to ftruncate offset
-        if (firstLine) {
-            mmappedData += 2;
-            firstLine = false;
-        }
 
         unsigned int key = atoi(mmappedData);
         if (key == x) {
