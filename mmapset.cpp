@@ -16,7 +16,7 @@ size_t getFilesize(const char* filename) {
     return st.st_size;   
 }
 
-void constructMap(char* mmappedData, size_t filesize, bool isEmpty, 
+void constructMap(const char* mmappedData, size_t filesize, bool isEmpty, 
     std::unordered_map<unsigned int, char*>& mapKeyPointer) {
 
     bool firstLine = true;
@@ -84,7 +84,7 @@ int main(int argc, char** argv) {
     }
 
     // store an unchanging pointer to the start so we can reference it from munmap
-    char* const mmappedDataStart = mmappedData;
+    const char* const mmappedDataStart = mmappedData;
 
     // create and construct local unordered hash map
     std::unordered_map<unsigned int, char*> mapKeyPointer;
