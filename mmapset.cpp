@@ -74,15 +74,15 @@ int main(int argc, char** argv) {
         exit(EXIT_FAILURE);
     }
 
-    // store an unchanging pointer to the start so we can reference it from munmap
-    char* const mmappedDataStart = mmappedData;
-
     // create and construct local unordered hash map
     std::unordered_map<unsigned int, char* const> mapKeyPointer;
     constructMap(mmappedData, filesize, mapKeyPointer);
 
     // prompt user for valid input and store result in file
     while(true) {
+
+        // store an unchanging pointer to the start so we can reference it from munmap
+        char* const mmappedDataStart = mmappedData;
 
         // prompt user for input
         std::cout << "\"exit\" or \"x y\" to create a mapping x -> y" << std::endl;
