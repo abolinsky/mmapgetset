@@ -14,7 +14,7 @@ size_t getFilesize(const char* filename) {
     return st.st_size;   
 }
 
-std::string getX(const char* mmappedData, size_t filesize, unsigned int x) {
+std::string getX(const char* mmappedData, const size_t filesize, const unsigned int x) {
 
     std::string result = "";
 

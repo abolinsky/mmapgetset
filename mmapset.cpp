@@ -16,7 +16,7 @@ size_t getFilesize(const char* filename) {
     return st.st_size;   
 }
 
-void constructMap(const char* mmappedData, size_t filesize, 
+void constructMap(const char* mmappedData, const size_t filesize, 
     std::unordered_map<unsigned int, char* const>& mapKeyPointer) {
 
     // from mmap, create a pair of values from each line, 
